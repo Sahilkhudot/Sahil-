@@ -1,5 +1,7 @@
 const express = require("express");
 const path = require("path");
+const os = require("os");
+const fs = require("fs");
 const { spawn } = require("child_process");
 
 const app = express();
@@ -30,76 +32,120 @@ app.post("/api/download", (req, res) => {
 
   if (!validInstagramUrl(url)) {
     return res.status(400).json({
-      error: "Please enter a valid Instagram post, reel, or story URL."
+      error: "Please enter a valid Instagram URL."
     });
   }
 
   if (["story", "highlight"].includes(kind)) {
     return res.status(400).json({
-      error: "Stories and Highlights may require login and are not supported by this public downloader."
+      error: "Stories and Highlights are not supported."
     });
   }
 
-  res.json({
-    message: "Link checked. Tap below to retrieve the media.",
+  return res.json({
+    message: "Your media is ready to retrieve.",
     downloadUrl: "/api/file?url=" + encodeURIComponent(url)
   });
 });
 
-app.get("/api/file", (req, res) => {
+app.get("/api/file", async (req, res) => {
   const url = req.query.url;
 
   if (!validInstagramUrl(url)) {
     return res.status(400).send("Invalid Instagram URL.");
   }
 
-  res.setHeader("Content-Type", "video/mp4");
-  res.setHeader(
-    "Content-Disposition",
-    'attachment; filename="SPEEDx999-download.mp4"'
-  );
+  let tempDir;
 
-  const downloader = spawn("python3", [
-    "-m", "yt_dlp",
-    "--no-playlist",
-    "--no-warnings",
-    "-f", "bestvideo+bestaudio/best",
-"--merge-output-format", "mp4",
-    "-o", "-",
-    url
-  ]);
+  try {
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "speedx999-"));
 
-  let started = false;
+    const ffmpegPath = (
+      await new Promise((resolve, reject) => {
+        const p = spawn("python3", [
+          "-c",
+          "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"
+        ]);
 
-  downloader.stdout.on("data", () => {
-    started = true;
-  });
+        let output = "";
+        p.stdout.on("data", d => output += d.toString());
+        p.on("error", reject);
+        p.on("close", code => {
+          if (code === 0 && output.trim()) resolve(output.trim());
+          else reject(new Error("FFmpeg package not available"));
+        });
+      })
+    );
 
-  downloader.stderr.on("data", (chunk) => {
-    console.error("yt-dlp:", chunk.toString());
-  });
+    const outputTemplate = path.join(tempDir, "media.%(ext)s");
 
-  downloader.on("error", (err) => {
-    console.error(err);
-    if (!res.headersSent) res.status(500);
-    res.end("Downloader could not start. Check the Render logs.");
-  });
+    await new Promise((resolve, reject) => {
+      const downloader = spawn("python3", [
+        "-m", "yt_dlp",
+        "--no-playlist",
+        "--no-warnings",
+        "--ffmpeg-location", ffmpegPath,
+        "-f", "bestvideo+bestaudio/best",
+        "--merge-output-format", "mp4",
+        "-o", outputTemplate,
+        url
+      ]);
 
-  downloader.on("close", (code) => {
-    if (code !== 0 && !started && !res.headersSent) {
-      res.status(502).send(
-        "Instagram could not provide this media. It may be private, restricted, or temporarily unavailable."
-      );
-    } else if (!res.writableEnded) {
-      res.end();
+      let errors = "";
+      downloader.stderr.on("data", d => errors += d.toString());
+      downloader.on("error", reject);
+      downloader.on("close", code => {
+        if (code === 0) resolve();
+        else reject(new Error(
+          "Instagram could not provide the video and audio. The media may be private or unavailable."
+        ));
+      });
+    });
+
+    const files = fs.readdirSync(tempDir)
+      .filter(name => !name.endsWith(".part"));
+
+    const videoFile = files.find(name =>
+      /\.(mp4|mkv|webm|mov)$/i.test(name)
+    );
+
+    if (!videoFile) {
+      throw new Error("No completed video file was created.");
     }
-  });
 
-  req.on("close", () => {
-    if (!res.writableEnded) downloader.kill();
-  });
+    const filePath = path.join(tempDir, videoFile);
 
-  downloader.stdout.pipe(res);
+    res.download(filePath, "SPEEDx999.mp4", async () => {
+      try {
+        await fs.promises.rm(tempDir, {
+          recursive: true,
+          force: true
+        });
+      } catch {}
+    });
+
+    res.on("close", () => {
+      fs.promises.rm(tempDir, {
+        recursive: true,
+        force: true
+      }).catch(() => {});
+    });
+  } catch (err) {
+    console.error("Download error:", err.message);
+
+    if (tempDir) {
+      fs.promises.rm(tempDir, {
+        recursive: true,
+        force: true
+      }).catch(() => {});
+    }
+
+    if (!res.headersSent) {
+      res.status(502).send(
+        "Download failed. Check the Render logs. Instagram may have blocked the media."
+      );
+    }
+  }
 });
 
 app.listen(PORT, "0.0.0.0", () => {
