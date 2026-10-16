@@ -1,0 +1,9 @@
+{
+  "name": "speedx999-instagram-downloader",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SPEED×999 public Instagram media downloader demo",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": { "express": "^4.21.2" }
+}
