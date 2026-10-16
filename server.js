@@ -23,6 +23,23 @@ function validInstagramUrl(value) {
   }
 }
 
+function run(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args);
+    let output = "";
+    let errors = "";
+
+    child.stdout.on("data", d => output += d.toString());
+    child.stderr.on("data", d => errors += d.toString());
+    child.on("error", reject);
+
+    child.on("close", code => {
+      if (code === 0) resolve(output.trim());
+      else reject(new Error(errors || "Command failed"));
+    });
+  });
+}
+
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -60,74 +77,40 @@ app.get("/api/file", async (req, res) => {
   try {
     tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "speedx999-"));
 
-    const ffmpegPath = (
-      await new Promise((resolve, reject) => {
-        const p = spawn("python3", [
-          "-c",
-          "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"
-        ]);
+    const ffmpegPath = await run("python3", [
+      "-c",
+      "import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())"
+    ]);
 
-        let output = "";
-        p.stdout.on("data", d => output += d.toString());
-        p.on("error", reject);
-        p.on("close", code => {
-          if (code === 0 && output.trim()) resolve(output.trim());
-          else reject(new Error("FFmpeg package not available"));
-        });
-      })
-    );
+    const template = path.join(tempDir, "media.%(ext)s");
 
-    const outputTemplate = path.join(tempDir, "media.%(ext)s");
+    await run("python3", [
+      "-m", "yt_dlp",
+      "--no-playlist",
+      "--no-warnings",
+      "--ffmpeg-location", ffmpegPath,
+      "-f", "bestvideo+bestaudio/best",
+      "--merge-output-format", "mp4",
+      "-o", template,
+      url
+    ]);
 
-    await new Promise((resolve, reject) => {
-      const downloader = spawn("python3", [
-        "-m", "yt_dlp",
-        "--no-playlist",
-        "--no-warnings",
-        "--ffmpeg-location", ffmpegPath,
-        "-f", "bestvideo+bestaudio/best",
-        "--merge-output-format", "mp4",
-        "-o", outputTemplate,
-        url
-      ]);
+    const files = fs.readdirSync(tempDir);
+    const filename = files.find(name => /\.mp4$/i.test(name));
 
-      let errors = "";
-      downloader.stderr.on("data", d => errors += d.toString());
-      downloader.on("error", reject);
-      downloader.on("close", code => {
-        if (code === 0) resolve();
-        else reject(new Error(
-          "Instagram could not provide the video and audio. The media may be private or unavailable."
-        ));
-      });
-    });
-
-    const files = fs.readdirSync(tempDir)
-      .filter(name => !name.endsWith(".part"));
-
-    const videoFile = files.find(name =>
-      /\.(mp4|mkv|webm|mov)$/i.test(name)
-    );
-
-    if (!videoFile) {
-      throw new Error("No completed video file was created.");
+    if (!filename) {
+      throw new Error("MP4 file was not created.");
     }
 
-    const filePath = path.join(tempDir, videoFile);
+    const filePath = path.join(tempDir, filename);
 
-    res.download(filePath, "SPEEDx999.mp4", async () => {
-        await fs.promises.rm(tempDir, {
-          recursive: true,
-          force: true
-        });
-      } catch {}
-    });
-
-    res.on("close", () => {
+    res.download(filePath, "SPEEDx999.mp4", err => {
       fs.promises.rm(tempDir, {
         recursive: true,
         force: true
       }).catch(() => {});
+
+      if (err) console.error("Send error:", err.message);
     });
   } catch (err) {
     console.error("Download error:", err.message);
@@ -141,7 +124,7 @@ app.get("/api/file", async (req, res) => {
 
     if (!res.headersSent) {
       res.status(502).send(
-        "Download failed. Check the Render logs. Instagram may have blocked the media."
+        "Download failed. Instagram may have blocked this media. Check Render logs."
       );
     }
   }
