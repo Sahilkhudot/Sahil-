@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08090d">
+<title>SPEED×999 — Instagram Downloader</title>
+<style>
+:root{--bg:#08090d;--panel:#11141c;--line:#242936;--text:#f4f6fb;--muted:#9ba3b5;--green:#b6ff3b;--pink:#ff3d81}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#1c2b19 0,transparent 44%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+.wrap{width:min(940px,92%);margin:auto}.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0}.logo{font-weight:950;letter-spacing:-1.5px;font-size:22px}.logo span{color:var(--green)}.pill{border:1px solid #38402e;color:var(--green);border-radius:99px;padding:7px 11px;font-size:11px;font-weight:800;letter-spacing:1px}
+.hero{text-align:center;padding:50px 0 30px}.eyebrow{color:var(--green);font-size:12px;letter-spacing:3px;font-weight:900}.hero h1{font-size:clamp(38px,8vw,70px);line-height:.98;letter-spacing:-3px;margin:17px 0}.hero h1 em{font-style:normal;color:var(--green)}.hero p{color:var(--muted);max-width:580px;margin:0 auto;line-height:1.7}
+.panel{background:linear-gradient(145deg,#151923,#0e1117);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 25px 90px #0005}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px}.tab{background:#0b0d12;color:#aeb5c4;border:1px solid var(--line);padding:12px 5px;border-radius:12px;font-weight:800;cursor:pointer}.tab.active{background:var(--green);color:#10130a;border-color:var(--green)}
+label{display:block;font-size:12px;font-weight:800;color:#cbd1dd;margin:4px 0 9px}.entry{display:flex;gap:10px}.entry input{min-width:0;flex:1;background:#080a0f;border:1px solid #303644;border-radius:13px;padding:16px;color:white;font-size:15px;outline:none}.entry input:focus{border-color:var(--green)}.go{background:var(--green);border:0;border-radius:13px;padding:0 22px;font-weight:950;color:#10130a;cursor:pointer}.hint{font-size:12px;color:var(--muted);line-height:1.6;margin:12px 2px 0}.status{display:none;margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:15px;background:#090b10}.status.show{display:block}.status a{display:inline-block;margin-top:10px;color:#10130a;background:var(--green);padding:11px 15px;border-radius:10px;text-decoration:none;font-weight:900}.status.error{border-color:#77324a;color:#ffc2d5}.features{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0 0}.feature{border:1px solid var(--line);background:#0e1117;border-radius:16px;padding:16px}.feature b{display:block;margin:7px 0}.feature p{font-size:12px;color:var(--muted);line-height:1.5;margin:0}.ico{font-size:21px}.foot{text-align:center;color:#747d8e;font-size:12px;padding:30px 0 38px;line-height:1.7}.foot strong{color:#aab2c1}
+@media(max-width:560px){.hero{padding-top:35px}.hero h1{letter-spacing:-2px}.panel{padding:14px;border-radius:18px}.tabs{grid-template-columns:repeat(2,1fr)}.entry{flex-direction:column}.go{padding:15px}.features{grid-template-columns:1fr}.top{padding:17px 0}}
+</style></head>
+<body><div class="wrap">
+<header class="top"><div class="logo">SPEED<span>×999</span></div><div class="pill">FAST • SIMPLE • FREE</div></header>
+<main>
+<section class="hero"><div class="eyebrow">SOCIAL MEDIA TOOLKIT</div><h1>DOWNLOAD AT<br><em>FULL SPEED.</em></h1><p>Save public Instagram reels, posts, stories and highlights you’re allowed to download. Paste a link to get started.</p></section>
+<section class="panel" aria-label="Instagram downloader">
+<div class="tabs" role="tablist">
+<button class="tab active" data-kind="reel">▶ Reels</button><button class="tab" data-kind="post">▣ Posts</button><button class="tab" data-kind="story">◉ Stories</button><button class="tab" data-kind="highlight">✦ Highlights</button>
+</div>
+<form id="downloadForm"><label for="url">PASTE INSTAGRAM LINK</label><div class="entry"><input id="url" type="url" placeholder="https://www.instagram.com/reel/..." required autocomplete="url"><button class="go" id="submit" type="submit">GET DOWNLOAD ↗</button></div><p class="hint" id="hint">Works with eligible public reel links. Private content and login-protected stories aren’t supported.</p></form>
+<div id="status" class="status" aria-live="polite"></div>
+</section>
+<section class="features">
+<div class="feature"><div class="ico">⚡</div><b>Quick workflow</b><p>Paste a link and let the server check whether the media can be retrieved.</p></div>
+<div class="feature"><div class="ico">📱</div><b>Mobile ready</b><p>Designed for phones first, with a clean dark neon interface.</p></div>
+<div class="feature"><div class="ico">🔒</div><b>Respect privacy</b><p>No Instagram password field. Private or restricted content is not bypassed.</p></div>
+</section>
+</main>
+<footer class="foot"><strong>SPEED×999</strong> is an independent tool and is not affiliated with Instagram or Meta.<br>Only download content you own or have permission to save. Respect copyright and platform rules.</footer>
+</div>
+<script>
+let kind="reel";
+const hints={reel:"Works with eligible public reel links. Private content and login-protected stories aren’t supported.",post:"Paste a public Instagram post URL. Some carousel posts may only expose one media item.",story:"Public story URLs may expire quickly and may not be supported by Instagram’s public access.",highlight:"Highlights may require sign-in and are often unavailable to public download tools."};
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));btn.classList.add("active");kind=btn.dataset.kind;document.getElementById("hint").textContent=hints[kind]}));
+const form=document.getElementById("downloadForm"), statusBox=document.getElementById("status"), submit=document.getElementById("submit");
+form.addEventListener("submit",async e=>{e.preventDefault();const url=document.getElementById("url").value.trim();statusBox.className="status show";statusBox.textContent="Checking link…";submit.disabled=true;submit.textContent="PLEASE WAIT";
+try{const r=await fetch("/api/download",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url,kind})});const data=await r.json();if(!r.ok)throw new Error(data.error||"Could not retrieve this media.");statusBox.className="status show";statusBox.textContent=data.message||"Your media is ready.";if(data.downloadUrl){const a=document.createElement("a");a.href=data.downloadUrl;a.textContent="DOWNLOAD FILE ↓";a.setAttribute("download","");statusBox.appendChild(document.createElement("br"));statusBox.appendChild(a)}}
+catch(err){statusBox.className="status show error";statusBox.textContent=err.message||"Something went wrong. Try a public link or try again later."}
+finally{submit.disabled=false;submit.textContent="GET DOWNLOAD ↗"}});
+</script></body></html>
