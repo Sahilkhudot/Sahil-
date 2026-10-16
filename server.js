@@ -116,7 +116,6 @@ app.get("/api/file", async (req, res) => {
     const filePath = path.join(tempDir, videoFile);
 
     res.download(filePath, "SPEEDx999.mp4", async () => {
-      try {
         await fs.promises.rm(tempDir, {
           recursive: true,
           force: true
