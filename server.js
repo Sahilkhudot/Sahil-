@@ -90,8 +90,8 @@ app.get("/api/file", async (req, res) => {
       "--no-playlist",
       "--no-warnings",
       "--ffmpeg-location", ffmpegPath,
-      "-f", "bestvideo*+bestaudio/best",
-      "--merge-output-format", "mp4",
+      "-f", "bestvideo+bestaudio/best",
+"--merge-output-format", "mp4",
       "--postprocessor-args", "Merger+ffmpeg_o:-c:a aac",
       "-o", template,
       url
