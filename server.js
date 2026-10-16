@@ -84,16 +84,19 @@ app.get("/api/file", async (req, res) => {
 
     const template = path.join(tempDir, "media.%(ext)s");
 
+    
     await run("python3", [
       "-m", "yt_dlp",
       "--no-playlist",
       "--no-warnings",
       "--ffmpeg-location", ffmpegPath,
-      "-f", "bestvideo+bestaudio/best",
+      "-f", "bestvideo*+bestaudio/best",
       "--merge-output-format", "mp4",
+      "--postprocessor-args", "Merger+ffmpeg_o:-c:a aac",
       "-o", template,
       url
     ]);
+    
 
     const files = fs.readdirSync(tempDir);
     const filename = files.find(name => /\.mp4$/i.test(name));
