@@ -63,7 +63,8 @@ app.get("/api/file", (req, res) => {
     "-m", "yt_dlp",
     "--no-playlist",
     "--no-warnings",
-    "-f", "best[ext=mp4]/best",
+    "-f", "bestvideo+bestaudio/best",
+"--merge-output-format", "mp4",
     "-o", "-",
     url
   ]);
